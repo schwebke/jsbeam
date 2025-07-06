@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 JSBeam is a plane frame and truss calculation web application that runs entirely in the browser. It's a client-only application with no build process, using modern ES modules and import maps.
 
+**JBeam Compatibility**: JSBeam uses the same model file format and algorithms as JBeam (Java-based twin application) to ensure full compatibility and data interchange between platforms.
+
 ## Architecture
 
 - **No-build workflow**: Uses native ES modules with import maps for dependencies
@@ -13,6 +15,8 @@ JSBeam is a plane frame and truss calculation web application that runs entirely
 - **Dependencies**: Loaded via ESM CDN (esm.sh)
 - **Entry point**: `static/index.html` loads the main application
 - **Theming**: CSS custom properties for light/dark mode switching
+- **Model Format**: JBeam JSON schema for structural models (stored in `doc/jbeam-model-schema.json`)
+- **Coordinate System**: x-z coordinate system matching structural analysis conventions
 
 ## Key Technologies
 
@@ -37,6 +41,9 @@ Since this is a no-build project, development is straightforward:
 - `README.md` - Project documentation with GPL license info
 - `docker-run.sh` - Docker development script
 - `doc/` - Documentation directory (contains ADRs)
+- `doc/jbeam-model-schema.json` - JBeam JSON schema for model validation
+- `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture decision
+- `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility
 
 ## Current Features
 
@@ -46,6 +53,14 @@ Since this is a no-build project, development is straightforward:
 - **Dark Mode**: Toggle between light and dark themes (? → Dark/Light Mode)
 - **Theme Persistence**: Remembers user preference and respects system settings
 - **Responsive Design**: Adapts to different screen sizes and aspect ratios
+
+## Planned Features (ADR-002)
+
+- **Interactive Node Entry**: Click-to-place nodes with JBeam-compatible data structure
+- **Application Modes**: Select and addNode modes with extensible architecture
+- **Coordinate Tracking**: Real-time x-z coordinate display in status bar
+- **Model Management**: JBeam JSON format for cross-platform compatibility
+- **Multi-Instance Support**: Independent models in different browser tabs/windows
 
 ## License
 
