@@ -2,7 +2,7 @@ import { html } from 'htm/preact';
 import { useState, useEffect } from 'preact/hooks';
 
 // MenuBar component
-export function MenuBar({ onAbout }) {
+export function MenuBar({ onAbout, onToggleTheme, currentTheme }) {
     const [showFileMenu, setShowFileMenu] = useState(false);
     const [showHelpMenu, setShowHelpMenu] = useState(false);
 
@@ -37,6 +37,12 @@ export function MenuBar({ onAbout }) {
         // File - new does nothing for now
     };
 
+    const handleToggleTheme = (e) => {
+        e.stopPropagation();
+        setShowHelpMenu(false);
+        onToggleTheme();
+    };
+
     const handleAbout = (e) => {
         e.stopPropagation();
         setShowHelpMenu(false);
@@ -57,6 +63,9 @@ export function MenuBar({ onAbout }) {
                 ?
                 ${showHelpMenu && html`
                     <div class="dropdown">
+                        <div class="dropdown-item" onClick=${handleToggleTheme}>
+                            ${currentTheme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                        </div>
                         <div class="dropdown-item" onClick=${handleAbout}>About</div>
                     </div>
                 `}
@@ -108,7 +117,7 @@ export function ContentArea() {
         <div class="content-area">
             <svg width="100%" height="100%" viewBox="0 0 ${dimensions.width} ${dimensions.height}">
                 ${points.map(([x, y]) => html`
-                    <circle cx=${x} cy=${y} r="0.5" fill="black" vector-effect="non-scaling-stroke" />
+                    <circle cx=${x} cy=${y} r="0.5" fill="var(--grid-color)" vector-effect="non-scaling-stroke" />
                 `)}
             </svg>
         </div>
@@ -135,10 +144,28 @@ export function AboutDialog({ isOpen, onClose }) {
 // Main App component
 export function App() {
     const [showAbout, setShowAbout] = useState(false);
+    const [theme, setTheme] = useState('light');
+
+    // Initialize theme from localStorage and system preference
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('jsbeam-theme');
+        const systemPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        const initialTheme = savedTheme || systemPreference;
+        setTheme(initialTheme);
+        document.documentElement.className = initialTheme === 'dark' ? 'dark-theme' : '';
+    }, []);
+
+    // Update theme and persist to localStorage
+    const toggleTheme = () => {
+        const newTheme = theme === 'light' ? 'dark' : 'light';
+        setTheme(newTheme);
+        localStorage.setItem('jsbeam-theme', newTheme);
+        document.documentElement.className = newTheme === 'dark' ? 'dark-theme' : '';
+    };
 
     return html`
         <div class="app">
-            <${MenuBar} onAbout=${() => setShowAbout(true)} />
+            <${MenuBar} onAbout=${() => setShowAbout(true)} onToggleTheme=${toggleTheme} currentTheme=${theme} />
             <${ContentArea} />
             <${StatusBar} />
             <${AboutDialog} isOpen=${showAbout} onClose=${() => setShowAbout(false)} />

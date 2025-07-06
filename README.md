@@ -18,6 +18,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
 ## Features
-- client only web application for modern browsers
-- no-build workflow
-- build on preact and htm
+- Client-only web application for modern browsers
+- No-build workflow using native ES modules
+- Built with Preact and HTM (Hyperscript Tagged Markup)
+- Responsive design with dynamic SVG grid
+- Dark mode support with system preference detection
+- Menu system with dropdown functionality
+- Theme persistence using localStorage
+
+## Current State
+JSBeam is currently in early development with basic application structure in place. The foundation includes:
+- Menu bar with File and help menus
+- Content area with point grid visualization
+- Status bar
+- Light/dark theme switching
+- Responsive layout that adapts to screen size
+
+## Development
+To run JSBeam locally:
+1. Serve the `static/` directory with any HTTP server
+2. Or use the provided `docker-run.sh` script for containerized development
+3. Open in a modern browser that supports ES modules and import maps
