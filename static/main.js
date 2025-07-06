@@ -165,7 +165,7 @@ export function StatusBar({ applicationMode, cursorCoordinates, model, viewport 
 }
 
 // ContentArea component with SVG point grid
-export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, viewport, onViewportChange }) {
+export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, viewport, onViewportChange, onNodeContextMenu }) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState(null);
@@ -309,6 +309,11 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
              onClick=${handleClick}
              onWheel=${handleWheel}>
             <svg width="100%" height="100%" viewBox="0 0 ${dimensions.width} ${dimensions.height}">
+                <defs>
+                    <marker id="arrowhead" markerWidth="3" markerHeight="2.5" refX="3" refY="1.25" orient="auto">
+                        <polygon points="0 0, 3 1.25, 0 2.5" fill="none" stroke="var(--moment-color)" stroke-width="1" />
+                    </marker>
+                </defs>
                 ${points.map(([worldX, worldZ]) => {
                     const screen = worldToScreen(worldX, worldZ, viewport, dimensions);
                     return html`<circle cx=${screen.x} cy=${screen.z} r="0.5" fill="var(--grid-color)" vector-effect="non-scaling-stroke" />`;
@@ -316,15 +321,9 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
                 ${model.nodes.map(node => {
                     const screen = worldToScreen(node.coordinates.x, node.coordinates.z, viewport, dimensions);
                     return html`
-                        <circle
-                            cx=${screen.x}
-                            cy=${screen.z}
-                            r="6"
-                            fill="none"
-                            stroke="var(--accent-color)"
-                            stroke-width="2"
-                            class="node"
-                        />
+                        <g class="node-group" onContextMenu=${(e) => onNodeContextMenu && onNodeContextMenu(e, node)}>
+                            ${renderNode(node, screen, viewport)}
+                        </g>
                     `;
                 })}
             </svg>
@@ -344,6 +343,108 @@ export function AboutDialog({ isOpen, onClose }) {
                 <p>Copyright (C) 2025 Kai Gerd Schwebke</p>
                 <p>Licensed under GPL v3</p>
                 <button onClick=${onClose}>Close</button>
+            </div>
+        </div>
+    `;
+}
+
+// Node Properties Editor component
+export function NodePropertiesEditor({ node, isOpen, onApply, onCancel }) {
+    if (!isOpen || !node) return null;
+
+    const [formData, setFormData] = useState({
+        label: node.label || '',
+        coordinates: { x: node.coordinates.x, z: node.coordinates.z },
+        constraints: { x: node.constraints.x, z: node.constraints.z, r: node.constraints.r },
+        loads: { fx: node.loads.fx, fz: node.loads.fz, m: node.loads.m }
+    });
+
+    // Reset form data when node changes
+    useEffect(() => {
+        if (node) {
+            setFormData({
+                label: node.label || '',
+                coordinates: { x: node.coordinates.x, z: node.coordinates.z },
+                constraints: { x: node.constraints.x, z: node.constraints.z, r: node.constraints.r },
+                loads: { fx: node.loads.fx, fz: node.loads.fz, m: node.loads.m }
+            });
+        }
+    }, [node]);
+
+    const handleApply = () => {
+        onApply(formData);
+    };
+
+    const handleKeyDown = (event) => {
+        if (event.key === 'Enter') {
+            handleApply();
+        } else if (event.key === 'Escape') {
+            onCancel();
+        }
+    };
+
+    return html`
+        <div class="modal-overlay" onClick=${onCancel}>
+            <div class="modal-content node-properties-editor" onClick=${(e) => e.stopPropagation()} onKeyDown=${handleKeyDown}>
+                <h3>Node Properties: ${node.id}</h3>
+                
+                <div class="form-section">
+                    <label>Label:</label>
+                    <input type="text" value=${formData.label} 
+                           onChange=${(e) => setFormData({...formData, label: e.target.value})} />
+                </div>
+                
+                <div class="form-section">
+                    <h4>Position</h4>
+                    <label>X: 
+                        <input type="number" value=${formData.coordinates.x} step="0.1"
+                               onChange=${(e) => setFormData({...formData, coordinates: {...formData.coordinates, x: parseFloat(e.target.value) || 0}})} />
+                    </label>
+                    <label>Z: 
+                        <input type="number" value=${formData.coordinates.z} step="0.1"
+                               onChange=${(e) => setFormData({...formData, coordinates: {...formData.coordinates, z: parseFloat(e.target.value) || 0}})} />
+                    </label>
+                </div>
+                
+                <div class="form-section">
+                    <h4>Constraints</h4>
+                    <label>
+                        <input type="checkbox" checked=${formData.constraints.x} 
+                               onChange=${(e) => setFormData({...formData, constraints: {...formData.constraints, x: e.target.checked}})} />
+                        X (Horizontal)
+                    </label>
+                    <label>
+                        <input type="checkbox" checked=${formData.constraints.z} 
+                               onChange=${(e) => setFormData({...formData, constraints: {...formData.constraints, z: e.target.checked}})} />
+                        Z (Vertical)
+                    </label>
+                    <label>
+                        <input type="checkbox" checked=${formData.constraints.r} 
+                               onChange=${(e) => setFormData({...formData, constraints: {...formData.constraints, r: e.target.checked}})} />
+                        R (Rotation)
+                    </label>
+                </div>
+                
+                <div class="form-section">
+                    <h4>Loads</h4>
+                    <label>Fx (Horizontal Force): 
+                        <input type="number" value=${formData.loads.fx} step="0.1"
+                               onChange=${(e) => setFormData({...formData, loads: {...formData.loads, fx: parseFloat(e.target.value) || 0}})} />
+                    </label>
+                    <label>Fz (Vertical Force): 
+                        <input type="number" value=${formData.loads.fz} step="0.1"
+                               onChange=${(e) => setFormData({...formData, loads: {...formData.loads, fz: parseFloat(e.target.value) || 0}})} />
+                    </label>
+                    <label>M (Moment): 
+                        <input type="number" value=${formData.loads.m} step="0.1"
+                               onChange=${(e) => setFormData({...formData, loads: {...formData.loads, m: parseFloat(e.target.value) || 0}})} />
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button onClick=${handleApply}>Apply</button>
+                    <button onClick=${onCancel}>Cancel</button>
+                </div>
             </div>
         </div>
     `;
@@ -404,6 +505,204 @@ const calculateGridSpacing = (baseGridSize, zoom) => {
     return gridSpacing;
 };
 
+// Enhanced node rendering with JBeam-compatible symbols
+const renderNode = (node, screen, viewport) => {
+    const elements = [];
+    const nodeRadius = 6;
+    const constraintSymbolSize = 12;
+    
+    // Invisible larger circle for easier clicking (tolerance area)
+    elements.push(html`
+        <circle
+            cx=${screen.x}
+            cy=${screen.z}
+            r="15"
+            fill="transparent"
+            stroke="none"
+            class="node-clickarea"
+        />
+    `);
+    
+    // Base node shape - square for R constrained, circle for others
+    if (node.constraints.r) {
+        // Square for rotationally constrained nodes
+        elements.push(html`
+            <rect
+                x=${screen.x - nodeRadius}
+                y=${screen.z - nodeRadius}
+                width=${nodeRadius * 2}
+                height=${nodeRadius * 2}
+                fill="none"
+                stroke="var(--accent-color)"
+                stroke-width="2"
+                class="node"
+            />
+        `);
+    } else {
+        // Circle for unconstrained nodes
+        elements.push(html`
+            <circle
+                cx=${screen.x}
+                cy=${screen.z}
+                r=${nodeRadius}
+                fill="none"
+                stroke="var(--accent-color)"
+                stroke-width="2"
+                class="node"
+            />
+        `);
+    }
+    
+    // Constraint symbols (based on JBeam NodeRenderer reference)
+    if (node.constraints.x && node.constraints.z && node.constraints.r) {
+        // Full constraint - upside-down T with cross-hatched base
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Vertical post of the T -->
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 2}" x2="${screen.x}" y2="${screen.z + nodeRadius + 16}" stroke-width="2" />
+                <!-- Horizontal base of the T -->
+                <line x1="${screen.x - 10}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 10}" y2="${screen.z + nodeRadius + 16}" stroke-width="2" />
+                <!-- Cross-hatched fill (diagonal lines) -->
+                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x - 6}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x - 4}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 4}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 6}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <!-- Cross-hatched fill (opposite diagonal lines) -->
+                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 8}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 6}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 4}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x + 4}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x + 6}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x + 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+            </g>
+        `);
+    } else if (node.constraints.x && node.constraints.z) {
+        // XZ constrained (pinned) - triangle outline with cross-hatched base
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Triangle outline (no fill) -->
+                <polygon fill="none" stroke-width="2"
+                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
+                <!-- Cross-hatched base (same as fully constrained) -->
+                <line x1="${screen.x - 6}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x - 4}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 4}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 6}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <!-- Cross-hatched base (opposite diagonal) -->
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 6}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 4}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x + 4}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                <line x1="${screen.x + 6}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+            </g>
+        `);
+    } else if (node.constraints.x && !node.constraints.z) {
+        // X constrained only (horizontal roller) - triangle with slider line
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Triangle outline (no fill) -->
+                <polygon fill="none" stroke-width="2"
+                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
+                <!-- Slider line parallel to triangle base -->
+                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 18}" stroke-width="2" />
+            </g>
+        `);
+    } else if (!node.constraints.x && node.constraints.z) {
+        // Z constrained only (vertical roller) - triangle rotated 90° CCW with slider line
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Triangle pointing right (rotated 90° CCW) -->
+                <polygon fill="none" stroke-width="2"
+                         points="${screen.x + nodeRadius + 2},${screen.z} ${screen.x + nodeRadius + 14},${screen.z - 8} ${screen.x + nodeRadius + 14},${screen.z + 8}" />
+                <!-- Slider line parallel to triangle base (vertical) -->
+                <line x1="${screen.x + nodeRadius + 18}" y1="${screen.z - 8}" x2="${screen.x + nodeRadius + 18}" y2="${screen.z + 8}" stroke-width="2" />
+            </g>
+        `);
+    } else if (!node.constraints.x && node.constraints.z && node.constraints.r) {
+        // ZR constrained (Z + rotation) - triangle rotated 90° CCW with slider line (same as Z only)
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Triangle pointing right (rotated 90° CCW) -->
+                <polygon fill="none" stroke-width="2"
+                         points="${screen.x + nodeRadius + 2},${screen.z} ${screen.x + nodeRadius + 14},${screen.z - 8} ${screen.x + nodeRadius + 14},${screen.z + 8}" />
+                <!-- Slider line parallel to triangle base (vertical) -->
+                <line x1="${screen.x + nodeRadius + 18}" y1="${screen.z - 8}" x2="${screen.x + nodeRadius + 18}" y2="${screen.z + 8}" stroke-width="2" />
+            </g>
+        `);
+    } else if (node.constraints.x && !node.constraints.z && node.constraints.r) {
+        // XR constrained (X + rotation) - triangle with slider line (same as X only)
+        elements.push(html`
+            <g class="constraint-symbol">
+                <!-- Triangle outline (no fill) -->
+                <polygon fill="none" stroke-width="2"
+                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
+                <!-- Slider line parallel to triangle base -->
+                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 18}" stroke-width="2" />
+            </g>
+        `);
+    } else if (!node.constraints.x && !node.constraints.z && node.constraints.r) {
+        // R constrained only (rotation constraint) - small square at node center
+        elements.push(html`
+            <rect class="constraint-symbol" x="${screen.x - 3}" y="${screen.z - 3}" width="6" height="6" fill="none" stroke-width="2" />
+        `);
+    }
+    
+    // Force vectors
+    if (Math.abs(node.loads.fx) > 0.001 || Math.abs(node.loads.fz) > 0.001) {
+        const forceScale = 40; // Scale factor for force display (200% of 20)
+        const fx = node.loads.fx * forceScale;
+        const fz = node.loads.fz * forceScale;
+        const forceLength = Math.sqrt(fx * fx + fz * fz);
+        
+        if (forceLength > 1) {
+            const arrowLength = Math.min(forceLength, 30); // 200% of 15
+            const startX = screen.x - (fx / forceLength) * arrowLength;
+            const startZ = screen.z - (fz / forceLength) * arrowLength;
+            
+            elements.push(html`
+                <g class="force-vector">
+                    <line x1=${startX} y1=${startZ} x2=${screen.x} y2=${screen.z} stroke="var(--moment-color)" stroke-width="2" marker-end="url(#arrowhead)" />
+                    <text x=${screen.x + 8} y=${screen.z - 8} class="force-label" fill="var(--moment-color)">
+                        ${Math.round(Math.sqrt(node.loads.fx * node.loads.fx + node.loads.fz * node.loads.fz) * 100) / 100}
+                    </text>
+                </g>
+            `);
+        }
+    }
+    
+    // Moment symbol
+    if (Math.abs(node.loads.m) > 0.001) {
+        const momentRadius = 12;
+        const clockwise = node.loads.m < 0;
+        
+        elements.push(html`
+            <g class="moment-symbol">
+                <!-- Half circle arc above node, centered on node -->
+                <path d="M ${screen.x - momentRadius} ${screen.z} A ${momentRadius} ${momentRadius} 0 0 ${clockwise ? 1 : 0} ${screen.x + momentRadius} ${screen.z}" 
+                      fill="none" stroke-width="2" />
+                <text x=${screen.x + momentRadius + 5} y=${screen.z - 5} class="moment-label">
+                    ${Math.abs(node.loads.m)}
+                </text>
+                <!-- Arrow at end of arc (CCW for positive moment) -->
+                <polygon points="${screen.x + momentRadius - 2},${clockwise ? screen.z + 2 : screen.z - 2} ${screen.x + momentRadius + 2},${screen.z} ${screen.x + momentRadius - 2},${clockwise ? screen.z - 2 : screen.z + 2}" 
+                         fill="none" stroke="var(--moment-color)" stroke-width="1" />
+            </g>
+        `);
+    }
+    
+    // Node label
+    if (node.label && node.label.trim() !== '') {
+        elements.push(html`
+            <text x=${screen.x + nodeRadius + 5} y=${screen.z - nodeRadius - 5} class="node-label" fill="var(--text-primary)">
+                ${node.label}
+            </text>
+        `);
+    }
+    
+    return elements;
+};
+
 // Main App component
 export function App() {
     const [showAbout, setShowAbout] = useState(false);
@@ -423,6 +722,8 @@ export function App() {
         minZoom: 1e-8,              // Minimum zoom level for dimensionless analysis
         maxZoom: 1e+8               // Maximum zoom level for dimensionless analysis
     });
+    const [selectedNode, setSelectedNode] = useState(null);
+    const [showNodeEditor, setShowNodeEditor] = useState(false);
 
     // Initialize theme from localStorage and system preference
     useEffect(() => {
@@ -505,7 +806,7 @@ export function App() {
         const nodeId = `node-${Date.now()}`;
         const newNode = {
             id: nodeId,
-            label: `Node ${model.nodes.length + 1}`,
+            label: "", // Empty label by default
             coordinates: {
                 x: coordinates.x,
                 z: coordinates.z
@@ -619,6 +920,47 @@ export function App() {
         }));
     };
 
+    // Handle node right-click for property editing
+    const handleNodeContextMenu = (event, node) => {
+        event.preventDefault();
+        
+        // Switch to select mode
+        if (applicationMode !== MODES.SELECT) {
+            setApplicationMode(MODES.SELECT);
+        }
+        
+        // Open property editor for this node
+        setSelectedNode(node);
+        setShowNodeEditor(true);
+    };
+
+    // Update node properties
+    const updateNodeProperties = (nodeId, newProperties) => {
+        setModel(prevModel => ({
+            ...prevModel,
+            nodes: prevModel.nodes.map(node => 
+                node.id === nodeId 
+                    ? { ...node, ...newProperties }
+                    : node
+            )
+        }));
+    };
+
+    // Handle node properties apply
+    const handleNodePropertiesApply = (formData) => {
+        if (selectedNode) {
+            updateNodeProperties(selectedNode.id, formData);
+            setShowNodeEditor(false);
+            setSelectedNode(null);
+        }
+    };
+
+    // Handle node properties cancel
+    const handleNodePropertiesCancel = () => {
+        setShowNodeEditor(false);
+        setSelectedNode(null);
+    };
+
     return html`
         <div class="app">
             <${MenuBar} 
@@ -641,6 +983,7 @@ export function App() {
                 onCursorMove=${setCursorCoordinates}
                 viewport=${viewport}
                 onViewportChange=${setViewport}
+                onNodeContextMenu=${handleNodeContextMenu}
             />
             <${StatusBar} 
                 applicationMode=${applicationMode}
@@ -649,6 +992,12 @@ export function App() {
                 viewport=${viewport}
             />
             <${AboutDialog} isOpen=${showAbout} onClose=${() => setShowAbout(false)} />
+            <${NodePropertiesEditor} 
+                node=${selectedNode}
+                isOpen=${showNodeEditor}
+                onApply=${handleNodePropertiesApply}
+                onCancel=${handleNodePropertiesCancel}
+            />
         </div>
     `;
 }

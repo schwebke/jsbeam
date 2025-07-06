@@ -45,6 +45,7 @@ Since this is a no-build project, development is straightforward:
 - `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture decision (implemented)
 - `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
 - `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
+- `doc/ADR-004-node-properties-editor.md` - Node properties editor and JBeam-compatible visual representation (implemented)
 
 ## Current Features
 
@@ -65,6 +66,9 @@ Since this is a no-build project, development is straightforward:
 - **Viewport Zoom**: Ctrl+wheel zoom around cursor, View menu zoom controls
 - **Adaptive Grid**: Grid spacing automatically adjusts based on zoom level
 - **Extreme Zoom Range**: 1e-8 to 1e+8 zoom levels for dimensionless structural analysis
+- **Node Properties Editor**: Right-click property editing with JBeam-compatible visual symbols
+- **Structural Visualization**: Constraint symbols, force vectors, and moment indicators
+- **Complete Node Properties**: Position, constraints, loads, and labels with form validation
 
 ## Planned Features
 

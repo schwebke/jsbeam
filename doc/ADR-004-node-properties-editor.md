@@ -1,7 +1,7 @@
 # ADR-004: Node Properties Editor and Visual Representation
 
 ## Status
-Proposed
+Implemented
 
 ## Context
 JSBeam currently supports basic node placement but lacks the ability to edit node properties or provide meaningful visual feedback about node states. Users need to:

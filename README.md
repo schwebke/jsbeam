@@ -31,6 +31,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 - **x-z coordinate system** matching structural analysis conventions
 - **Viewport pan and zoom** with extreme zoom range (1e-8 to 1e+8)
 - **Interactive node placement** with real-time coordinate tracking
+- **Node properties editor** with right-click access and complete property control
+- **JBeam-compatible visual symbols** for constraints, forces, and moments
 - **Application modes** for different interaction types
 - **Adaptive grid system** that scales with zoom level
 
@@ -45,6 +47,9 @@ JSBeam has implemented comprehensive interactive modeling capabilities:
 - **Application modes** (select, addNode) with extensible architecture
 - **Viewport navigation** with middle mouse pan and Ctrl+wheel zoom
 - **Extreme zoom capabilities** (1e-8 to 1e+8) for dimensionless analysis
+- **Node properties editor** with right-click access for complete property control
+- **JBeam-compatible visual representation** with constraint symbols, force vectors, and moment indicators
+- **Structural modeling features** including position, constraints, loads, and labels
 - **Adaptive grid system** that automatically adjusts spacing
 - **Real-time coordinate tracking** in x-z coordinate system
 - **JBeam-compatible model structure** for structural analysis
@@ -70,4 +75,5 @@ To run JSBeam locally:
 - `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture (implemented)
 - `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
 - `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
+- `doc/ADR-004-node-properties-editor.md` - Node properties editor and JBeam-compatible visual representation (implemented)
 - `doc/jbeam-model-schema.json` - JBeam JSON schema for model validation
