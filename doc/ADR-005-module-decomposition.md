@@ -1,7 +1,7 @@
 # ADR-005: Module Decomposition
 
 ## Status
-Proposed
+Implemented
 
 ## Context
 JSBeam's main.js has grown to approximately 1,000 lines and contains multiple concerns mixed together. With upcoming features (beam entry, property editing for three beam types, static/dynamic analysis, and results visualization), the codebase will continue to grow significantly.

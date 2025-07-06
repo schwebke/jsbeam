@@ -11,6 +11,7 @@ JSBeam is a plane frame and truss calculation web application that runs entirely
 ## Architecture
 
 - **No-build workflow**: Uses native ES modules with import maps for dependencies
+- **Modular Structure**: Decomposed into 6 focused modules for maintainability and scalability
 - **Frontend**: Built with Preact and HTM (Hyperscript Tagged Markup)
 - **Dependencies**: Loaded via ESM CDN (esm.sh)
 - **Entry point**: `static/index.html` loads the main application
@@ -35,8 +36,13 @@ Since this is a no-build project, development is straightforward:
 
 ## File Structure
 
-- `static/index.html` - Main HTML entry point
-- `static/main.js` - Application components (MenuBar, ContentArea, StatusBar, etc.)
+- `static/index.html` - Main HTML entry point with import map
+- `static/main.js` - Core application orchestration (~215 lines, reduced from ~1000)
+- `static/ui-components.js` - All UI components (MenuBar, ContentArea, StatusBar, etc.)
+- `static/model.js` - JBeam-compatible data structures and model manipulation
+- `static/render.js` - Node, grid, and beam rendering with SVG graphics
+- `static/interact.js` - Viewport controls, mode handling, and event management
+- `static/util.js` - Coordinate transformations, validation, storage, and utility functions
 - `static/styles.css` - CSS with custom properties for theming
 - `README.md` - Project documentation with GPL license info
 - `docker-run.sh` - Docker development script
@@ -46,6 +52,7 @@ Since this is a no-build project, development is straightforward:
 - `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
 - `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
 - `doc/ADR-004-node-properties-editor.md` - Node properties editor and JBeam-compatible visual representation (implemented)
+- `doc/ADR-005-module-decomposition.md` - Module decomposition for maintainability and scalability (implemented)
 
 ## Current Features
 

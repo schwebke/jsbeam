@@ -21,8 +21,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 ## Features
 - Client-only web application for modern browsers
-- No-build workflow using native ES modules
+- No-build workflow using native ES modules with modular architecture
 - Built with Preact and HTM (Hyperscript Tagged Markup)
+- **Modular codebase** with 6 focused modules for maintainability and scalability
 - Responsive design with dynamic SVG grid and viewport navigation
 - Dark mode support with system preference detection
 - Menu system with dropdown functionality (File, Mode, View, Help)
@@ -37,7 +38,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 - **Adaptive grid system** that scales with zoom level
 
 ## Current State
-JSBeam has implemented comprehensive interactive modeling capabilities:
+JSBeam has implemented comprehensive interactive modeling capabilities with a modular architecture:
+- **Modular codebase** decomposed into 6 focused modules (reduced main.js from ~1000 to ~215 lines)
 - Menu bar with File, Mode, View, and Help menus
 - Content area with navigable grid visualization and node placement
 - Status bar with real-time coordinate tracking and zoom level display
@@ -76,4 +78,5 @@ To run JSBeam locally:
 - `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
 - `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
 - `doc/ADR-004-node-properties-editor.md` - Node properties editor and JBeam-compatible visual representation (implemented)
+- `doc/ADR-005-module-decomposition.md` - Module decomposition for maintainability and scalability (implemented)
 - `doc/jbeam-model-schema.json` - JBeam JSON schema for model validation
