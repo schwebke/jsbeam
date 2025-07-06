@@ -2,10 +2,11 @@ import { html } from 'htm/preact';
 import { useState, useEffect } from 'preact/hooks';
 
 // MenuBar component
-export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode, onModeChange, onFileNew }) {
+export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode, onModeChange, onFileNew, viewport, onZoomIn, onZoomOut, onZoomFit, onZoomActual }) {
     const [showFileMenu, setShowFileMenu] = useState(false);
     const [showHelpMenu, setShowHelpMenu] = useState(false);
     const [showModeMenu, setShowModeMenu] = useState(false);
+    const [showViewMenu, setShowViewMenu] = useState(false);
 
     // Close menus when clicking outside
     useEffect(() => {
@@ -14,6 +15,7 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
                 setShowFileMenu(false);
                 setShowHelpMenu(false);
                 setShowModeMenu(false);
+                setShowViewMenu(false);
             }
         };
 
@@ -25,6 +27,7 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
         e.stopPropagation();
         setShowHelpMenu(false);
         setShowModeMenu(false);
+        setShowViewMenu(false);
         setShowFileMenu(!showFileMenu);
     };
 
@@ -32,13 +35,23 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
         e.stopPropagation();
         setShowFileMenu(false);
         setShowHelpMenu(false);
+        setShowViewMenu(false);
         setShowModeMenu(!showModeMenu);
+    };
+
+    const handleViewMenuClick = (e) => {
+        e.stopPropagation();
+        setShowFileMenu(false);
+        setShowHelpMenu(false);
+        setShowModeMenu(false);
+        setShowViewMenu(!showViewMenu);
     };
 
     const handleHelpMenuClick = (e) => {
         e.stopPropagation();
         setShowFileMenu(false);
         setShowModeMenu(false);
+        setShowViewMenu(false);
         setShowHelpMenu(!showHelpMenu);
     };
 
@@ -66,6 +79,30 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
         onModeChange(mode);
     };
 
+    const handleZoomIn = (e) => {
+        e.stopPropagation();
+        setShowViewMenu(false);
+        onZoomIn();
+    };
+
+    const handleZoomOut = (e) => {
+        e.stopPropagation();
+        setShowViewMenu(false);
+        onZoomOut();
+    };
+
+    const handleZoomFit = (e) => {
+        e.stopPropagation();
+        setShowViewMenu(false);
+        onZoomFit();
+    };
+
+    const handleZoomActual = (e) => {
+        e.stopPropagation();
+        setShowViewMenu(false);
+        onZoomActual();
+    };
+
     return html`
         <div class="menubar">
             <div class="menu-item" onClick=${handleFileMenuClick}>
@@ -89,6 +126,17 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
                     </div>
                 `}
             </div>
+            <div class="menu-item" onClick=${handleViewMenuClick}>
+                View
+                ${showViewMenu && html`
+                    <div class="dropdown">
+                        <div class="dropdown-item" onClick=${handleZoomIn}>Zoom In</div>
+                        <div class="dropdown-item" onClick=${handleZoomOut}>Zoom Out</div>
+                        <div class="dropdown-item" onClick=${handleZoomFit}>Zoom to Fit</div>
+                        <div class="dropdown-item" onClick=${handleZoomActual}>Actual Size</div>
+                    </div>
+                `}
+            </div>
             <div class="menu-item" onClick=${handleHelpMenuClick}>
                 ?
                 ${showHelpMenu && html`
@@ -105,20 +153,23 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
 }
 
 // StatusBar component
-export function StatusBar({ applicationMode, cursorCoordinates, model }) {
+export function StatusBar({ applicationMode, cursorCoordinates, model, viewport }) {
     const modeDisplay = applicationMode === 'select' ? 'Select' : 'Add Node';
+    const zoomPercent = Math.round(viewport.zoom * 100);
     
     return html`
         <div class="statusbar">
-            Mode: ${modeDisplay} | X: ${Math.round(cursorCoordinates.x)}, Z: ${Math.round(cursorCoordinates.z)} | Nodes: ${model.nodes.length}, Beams: ${model.beams.length}
+            Mode: ${modeDisplay} | X: ${Math.round(cursorCoordinates.x)}, Z: ${Math.round(cursorCoordinates.z)} | Zoom: ${zoomPercent}% | Nodes: ${model.nodes.length}, Beams: ${model.beams.length}
         </div>
     `;
 }
 
 // ContentArea component with SVG point grid
-export function ContentArea({ applicationMode, model, onAddNode, onCursorMove }) {
+export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, viewport, onViewportChange }) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
-    const gridSize = 20;
+    const [isPanning, setIsPanning] = useState(false);
+    const [panStart, setPanStart] = useState(null);
+    const baseGridSize = 20;
     
     // Update dimensions when container size changes
     useEffect(() => {
@@ -137,48 +188,145 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove })
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
-    // Generate grid points based on current dimensions
+    // Generate grid points with adaptive spacing
+    const gridSpacing = calculateGridSpacing(baseGridSize, viewport.zoom);
     const points = [];
-    for (let x = 0; x < dimensions.width; x += gridSize) {
-        for (let y = 0; y < dimensions.height; y += gridSize) {
-            points.push([x, y]);
+    
+    // Calculate visible world area
+    const visibleWorldArea = {
+        minX: screenToWorld(0, 0, viewport, dimensions).x,
+        maxX: screenToWorld(dimensions.width, 0, viewport, dimensions).x,
+        minZ: screenToWorld(0, 0, viewport, dimensions).z,
+        maxZ: screenToWorld(0, dimensions.height, viewport, dimensions).z
+    };
+
+    // Generate grid points only in visible area
+    for (let x = Math.floor(visibleWorldArea.minX / gridSpacing) * gridSpacing; 
+         x <= visibleWorldArea.maxX; 
+         x += gridSpacing) {
+        for (let z = Math.floor(visibleWorldArea.minZ / gridSpacing) * gridSpacing; 
+             z <= visibleWorldArea.maxZ; 
+             z += gridSpacing) {
+            points.push([x, z]);
         }
     }
 
     // Handle mouse events
+    const handleMouseDown = (event) => {
+        if (event.button === 1) { // Middle mouse button
+            setIsPanning(true);
+            setPanStart({
+                x: event.clientX,
+                z: event.clientY,
+                viewport: { ...viewport }
+            });
+            event.preventDefault();
+        }
+    };
+
     const handleMouseMove = (event) => {
         const rect = event.currentTarget.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const z = event.clientY - rect.top;
-        onCursorMove({ x, z });
+        
+        if (isPanning && panStart) {
+            const deltaX = (event.clientX - panStart.x) / viewport.zoom;
+            const deltaZ = (event.clientY - panStart.z) / viewport.zoom;
+            
+            onViewportChange({
+                ...viewport,
+                pan: {
+                    x: panStart.viewport.pan.x - deltaX,
+                    z: panStart.viewport.pan.z - deltaZ
+                }
+            });
+        }
+        
+        // Update cursor coordinates in world space
+        const screenX = event.clientX - rect.left;
+        const screenZ = event.clientY - rect.top;
+        const worldCoords = screenToWorld(screenX, screenZ, viewport, dimensions);
+        onCursorMove(worldCoords);
+    };
+
+    const handleMouseUp = (event) => {
+        if (event.button === 1) { // Middle mouse button
+            setIsPanning(false);
+            setPanStart(null);
+        }
     };
 
     const handleClick = (event) => {
-        if (applicationMode === 'addNode') {
+        if (applicationMode === 'addNode' && !isPanning) {
             const rect = event.currentTarget.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const z = event.clientY - rect.top;
-            onAddNode({ x, z });
+            const screenX = event.clientX - rect.left;
+            const screenZ = event.clientY - rect.top;
+            const worldCoords = screenToWorld(screenX, screenZ, viewport, dimensions);
+            onAddNode(worldCoords);
+        }
+    };
+
+    const handleWheel = (event) => {
+        if (event.ctrlKey) {
+            event.preventDefault();
+            
+            // Get mouse position in world coordinates before zoom
+            const rect = event.currentTarget.getBoundingClientRect();
+            const mouseScreen = {
+                x: event.clientX - rect.left,
+                z: event.clientY - rect.top
+            };
+            const mouseWorldBefore = screenToWorld(mouseScreen.x, mouseScreen.z, viewport, dimensions);
+            
+            // Calculate new zoom level
+            const zoomFactor = event.deltaY > 0 ? 0.9 : 1.1;
+            const newZoom = Math.max(
+                viewport.minZoom,
+                Math.min(viewport.maxZoom, viewport.zoom * zoomFactor)
+            );
+            
+            // Calculate new pan to keep mouse position fixed
+            const mouseWorldAfter = screenToWorld(mouseScreen.x, mouseScreen.z, { ...viewport, zoom: newZoom }, dimensions);
+            const panAdjustment = {
+                x: mouseWorldBefore.x - mouseWorldAfter.x,
+                z: mouseWorldBefore.z - mouseWorldAfter.z
+            };
+            
+            onViewportChange({
+                ...viewport,
+                zoom: newZoom,
+                pan: {
+                    x: viewport.pan.x + panAdjustment.x,
+                    z: viewport.pan.z + panAdjustment.z
+                }
+            });
         }
     };
 
     return html`
-        <div class="content-area ${applicationMode === 'addNode' ? 'mode-addNode' : ''}" onMouseMove=${handleMouseMove} onClick=${handleClick}>
+        <div class="content-area ${applicationMode === 'addNode' ? 'mode-addNode' : ''} ${isPanning ? 'panning' : ''}" 
+             onMouseDown=${handleMouseDown} 
+             onMouseMove=${handleMouseMove} 
+             onMouseUp=${handleMouseUp}
+             onClick=${handleClick}
+             onWheel=${handleWheel}>
             <svg width="100%" height="100%" viewBox="0 0 ${dimensions.width} ${dimensions.height}">
-                ${points.map(([x, y]) => html`
-                    <circle cx=${x} cy=${y} r="0.5" fill="var(--grid-color)" vector-effect="non-scaling-stroke" />
-                `)}
-                ${model.nodes.map(node => html`
-                    <circle
-                        cx=${node.coordinates.x}
-                        cy=${node.coordinates.z}
-                        r="6"
-                        fill="none"
-                        stroke="var(--accent-color)"
-                        stroke-width="2"
-                        class="node"
-                    />
-                `)}
+                ${points.map(([worldX, worldZ]) => {
+                    const screen = worldToScreen(worldX, worldZ, viewport, dimensions);
+                    return html`<circle cx=${screen.x} cy=${screen.z} r="0.5" fill="var(--grid-color)" vector-effect="non-scaling-stroke" />`;
+                })}
+                ${model.nodes.map(node => {
+                    const screen = worldToScreen(node.coordinates.x, node.coordinates.z, viewport, dimensions);
+                    return html`
+                        <circle
+                            cx=${screen.x}
+                            cy=${screen.z}
+                            r="6"
+                            fill="none"
+                            stroke="var(--accent-color)"
+                            stroke-width="2"
+                            class="node"
+                        />
+                    `;
+                })}
             </svg>
         </div>
     `;
@@ -223,6 +371,39 @@ const setModelIdInUrl = (modelId) => {
     window.history.replaceState({}, '', url);
 };
 
+// Coordinate transformation utilities
+const screenToWorld = (screenX, screenZ, viewport, dimensions) => {
+    return {
+        x: (screenX - dimensions.width / 2) / viewport.zoom + viewport.pan.x,
+        z: (screenZ - dimensions.height / 2) / viewport.zoom + viewport.pan.z
+    };
+};
+
+const worldToScreen = (worldX, worldZ, viewport, dimensions) => {
+    return {
+        x: (worldX - viewport.pan.x) * viewport.zoom + dimensions.width / 2,
+        z: (worldZ - viewport.pan.z) * viewport.zoom + dimensions.height / 2
+    };
+};
+
+// Adaptive grid spacing calculation
+const calculateGridSpacing = (baseGridSize, zoom) => {
+    // Target: 20-100 pixels between grid lines on screen
+    let gridSpacing = baseGridSize;
+    
+    // If grid is too dense, increase spacing
+    while (gridSpacing * zoom < 20 && gridSpacing < 1e6) {
+        gridSpacing *= 2;
+    }
+    
+    // If grid is too coarse, decrease spacing
+    while (gridSpacing * zoom > 100 && gridSpacing > 1e-6) {
+        gridSpacing /= 2;
+    }
+    
+    return gridSpacing;
+};
+
 // Main App component
 export function App() {
     const [showAbout, setShowAbout] = useState(false);
@@ -236,6 +417,12 @@ export function App() {
         beams: []
     });
     const [cursorCoordinates, setCursorCoordinates] = useState({ x: 0, z: 0 });
+    const [viewport, setViewport] = useState({
+        pan: { x: 0, z: 0 },        // World coordinate offset
+        zoom: 1.0,                  // Zoom level (1.0 = 100%)
+        minZoom: 1e-8,              // Minimum zoom level for dimensionless analysis
+        maxZoom: 1e+8               // Maximum zoom level for dimensionless analysis
+    });
 
     // Initialize theme from localStorage and system preference
     useEffect(() => {
@@ -355,6 +542,83 @@ export function App() {
         setApplicationMode(MODES.SELECT);
     };
 
+    // Zoom functions
+    const zoomIn = () => {
+        const zoomFactor = 1.5;
+        const newZoom = Math.min(viewport.maxZoom, viewport.zoom * zoomFactor);
+        
+        setViewport(prev => ({
+            ...prev,
+            zoom: newZoom
+        }));
+    };
+
+    const zoomOut = () => {
+        const zoomFactor = 1 / 1.5;
+        const newZoom = Math.max(viewport.minZoom, viewport.zoom * zoomFactor);
+        
+        setViewport(prev => ({
+            ...prev,
+            zoom: newZoom
+        }));
+    };
+
+    const zoomFit = () => {
+        if (model.nodes.length === 0) {
+            setViewport(prev => ({
+                ...prev,
+                zoom: 1.0,
+                pan: { x: 0, z: 0 }
+            }));
+            return;
+        }
+
+        // Calculate model bounds
+        const bounds = model.nodes.reduce((acc, node) => ({
+            minX: Math.min(acc.minX, node.coordinates.x),
+            maxX: Math.max(acc.maxX, node.coordinates.x),
+            minZ: Math.min(acc.minZ, node.coordinates.z),
+            maxZ: Math.max(acc.maxZ, node.coordinates.z)
+        }), {
+            minX: model.nodes[0].coordinates.x,
+            maxX: model.nodes[0].coordinates.x,
+            minZ: model.nodes[0].coordinates.z,
+            maxZ: model.nodes[0].coordinates.z
+        });
+
+        // Add padding
+        const padding = 50;
+        const modelWidth = bounds.maxX - bounds.minX + padding * 2;
+        const modelHeight = bounds.maxZ - bounds.minZ + padding * 2;
+        
+        // Get current dimensions (use default if not available)
+        const contentArea = document.querySelector('.content-area');
+        const viewWidth = contentArea ? contentArea.clientWidth : 800;
+        const viewHeight = contentArea ? contentArea.clientHeight : 600;
+        
+        // Calculate zoom to fit
+        const zoomX = viewWidth / modelWidth;
+        const zoomZ = viewHeight / modelHeight;
+        const fitZoom = Math.min(zoomX, zoomZ, viewport.maxZoom);
+        
+        // Center on model
+        const centerX = (bounds.minX + bounds.maxX) / 2;
+        const centerZ = (bounds.minZ + bounds.maxZ) / 2;
+        
+        setViewport({
+            ...viewport,
+            zoom: fitZoom,
+            pan: { x: centerX, z: centerZ }
+        });
+    };
+
+    const zoomActual = () => {
+        setViewport(prev => ({
+            ...prev,
+            zoom: 1.0
+        }));
+    };
+
     return html`
         <div class="app">
             <${MenuBar} 
@@ -364,17 +628,25 @@ export function App() {
                 applicationMode=${applicationMode}
                 onModeChange=${setApplicationMode}
                 onFileNew=${createNewModel}
+                viewport=${viewport}
+                onZoomIn=${zoomIn}
+                onZoomOut=${zoomOut}
+                onZoomFit=${zoomFit}
+                onZoomActual=${zoomActual}
             />
             <${ContentArea} 
                 applicationMode=${applicationMode}
                 model=${model}
                 onAddNode=${addNode}
                 onCursorMove=${setCursorCoordinates}
+                viewport=${viewport}
+                onViewportChange=${setViewport}
             />
             <${StatusBar} 
                 applicationMode=${applicationMode}
                 cursorCoordinates=${cursorCoordinates}
                 model=${model}
+                viewport=${viewport}
             />
             <${AboutDialog} isOpen=${showAbout} onClose=${() => setShowAbout(false)} />
         </div>

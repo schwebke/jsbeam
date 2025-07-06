@@ -1,7 +1,7 @@
 # ADR-003: Viewport Pan and Zoom
 
 ## Status
-Proposed
+Implemented
 
 ## Context
 JSBeam currently displays a fixed grid view without the ability to navigate or zoom in/out of the structural model. As models grow in size or require detailed work, users need:

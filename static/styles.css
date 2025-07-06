@@ -110,6 +110,14 @@ body, html {
     cursor: crosshair;
 }
 
+.content-area.panning {
+    cursor: grab;
+}
+
+.content-area.panning:active {
+    cursor: grabbing;
+}
+
 .node {
     cursor: pointer;
 }

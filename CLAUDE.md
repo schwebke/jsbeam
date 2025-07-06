@@ -42,14 +42,15 @@ Since this is a no-build project, development is straightforward:
 - `docker-run.sh` - Docker development script
 - `doc/` - Documentation directory (contains ADRs)
 - `doc/jbeam-model-schema.json` - JBeam JSON schema for model validation
-- `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture decision
-- `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility
+- `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture decision (implemented)
+- `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
+- `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
 
 ## Current Features
 
-- **Menu System**: File and help menus with dropdown functionality
-- **Content Area**: Dynamic SVG grid that adapts to container size
-- **Status Bar**: Shows application status with real-time coordinate tracking
+- **Menu System**: File, Mode, View, and Help menus with dropdown functionality
+- **Content Area**: Dynamic SVG grid with viewport navigation capabilities
+- **Status Bar**: Shows application status with real-time coordinate tracking and zoom level
 - **Dark Mode**: Toggle between light and dark themes (? → Dark/Light Mode)
 - **Theme Persistence**: Remembers user preference and respects system settings
 - **Responsive Design**: Adapts to different screen sizes and aspect ratios
@@ -60,6 +61,10 @@ Since this is a no-build project, development is straightforward:
 - **URL-based Model State**: Model ID stored in URL for persistence and sharing
 - **Multi-Instance Support**: Independent models in different browser tabs/windows
 - **Keyboard Shortcuts**: Ctrl+1 (Select mode), Ctrl+2 (Add Node mode)
+- **Viewport Pan**: Middle mouse drag to navigate large models
+- **Viewport Zoom**: Ctrl+wheel zoom around cursor, View menu zoom controls
+- **Adaptive Grid**: Grid spacing automatically adjusts based on zoom level
+- **Extreme Zoom Range**: 1e-8 to 1e+8 zoom levels for dimensionless structural analysis
 
 ## Planned Features
 

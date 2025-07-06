@@ -1,7 +1,7 @@
 # ADR-002: Interactive Node Entry and Model Management
 
 ## Status
-Proposed
+Implemented
 
 ## Context
 JSBeam needs to evolve from a static grid display to an interactive structural modeling application. Users need to:

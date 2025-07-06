@@ -1,7 +1,7 @@
 # ADR-001: Dark Mode Implementation
 
 ## Status
-Proposed
+Implemented
 
 ## Context
 JSBeam currently only supports a light theme. Modern web applications increasingly offer dark mode options to:

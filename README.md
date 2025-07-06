@@ -23,22 +23,29 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 - Client-only web application for modern browsers
 - No-build workflow using native ES modules
 - Built with Preact and HTM (Hyperscript Tagged Markup)
-- Responsive design with dynamic SVG grid
+- Responsive design with dynamic SVG grid and viewport navigation
 - Dark mode support with system preference detection
-- Menu system with dropdown functionality
+- Menu system with dropdown functionality (File, Mode, View, Help)
 - Theme persistence using localStorage
 - **JBeam JSON format compatibility** for cross-platform model sharing
 - **x-z coordinate system** matching structural analysis conventions
+- **Viewport pan and zoom** with extreme zoom range (1e-8 to 1e+8)
+- **Interactive node placement** with real-time coordinate tracking
+- **Application modes** for different interaction types
+- **Adaptive grid system** that scales with zoom level
 
 ## Current State
-JSBeam has implemented the core interactive modeling features:
-- Menu bar with File and help menus
-- Content area with point grid visualization and node placement
-- Status bar with real-time coordinate tracking
-- Light/dark theme switching
+JSBeam has implemented comprehensive interactive modeling capabilities:
+- Menu bar with File, Mode, View, and Help menus
+- Content area with navigable grid visualization and node placement
+- Status bar with real-time coordinate tracking and zoom level display
+- Light/dark theme switching with system preference detection
 - Responsive layout that adapts to screen size
 - **Interactive node entry** with click-to-place functionality
 - **Application modes** (select, addNode) with extensible architecture
+- **Viewport navigation** with middle mouse pan and Ctrl+wheel zoom
+- **Extreme zoom capabilities** (1e-8 to 1e+8) for dimensionless analysis
+- **Adaptive grid system** that automatically adjusts spacing
 - **Real-time coordinate tracking** in x-z coordinate system
 - **JBeam-compatible model structure** for structural analysis
 - **URL-based model management** for persistence and sharing
@@ -60,6 +67,7 @@ To run JSBeam locally:
 3. Open in a modern browser that supports ES modules and import maps
 
 ## Documentation
-- `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture
-- `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility
+- `doc/ADR-001-dark-mode.md` - Dark mode implementation architecture (implemented)
+- `doc/ADR-002-interactive-node-entry.md` - Interactive node entry and JBeam compatibility (implemented)
+- `doc/ADR-003-viewport-pan-zoom.md` - Viewport pan and zoom with extreme zoom capabilities (implemented)
 - `doc/jbeam-model-schema.json` - JBeam JSON schema for model validation
