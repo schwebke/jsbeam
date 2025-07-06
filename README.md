@@ -31,20 +31,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 - **x-z coordinate system** matching structural analysis conventions
 
 ## Current State
-JSBeam is currently in early development with basic application structure in place. The foundation includes:
+JSBeam has implemented the core interactive modeling features:
 - Menu bar with File and help menus
-- Content area with point grid visualization
-- Status bar
+- Content area with point grid visualization and node placement
+- Status bar with real-time coordinate tracking
 - Light/dark theme switching
 - Responsive layout that adapts to screen size
-
-## Planned Features
-Based on ADR-002, the next phase will implement:
 - **Interactive node entry** with click-to-place functionality
 - **Application modes** (select, addNode) with extensible architecture
 - **Real-time coordinate tracking** in x-z coordinate system
 - **JBeam-compatible model structure** for structural analysis
+- **URL-based model management** for persistence and sharing
 - **Multi-instance support** for independent models in different browser tabs
+- **Keyboard shortcuts** for mode switching (Ctrl+1, Ctrl+2)
+
+## Planned Features
+The next development phase will focus on:
+- **Beam entry** to connect nodes with structural elements
+- **Load application** for forces, moments, and distributed loads
+- **Support definition** for boundary conditions and constraints
+- **Structural analysis** calculations using JBeam-compatible algorithms
+- **Results visualization** with deformed shapes and force diagrams
 
 ## Development
 To run JSBeam locally:

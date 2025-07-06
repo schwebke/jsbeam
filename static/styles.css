@@ -106,6 +106,18 @@ body, html {
     height: 100%;
 }
 
+.content-area.mode-addNode {
+    cursor: crosshair;
+}
+
+.node {
+    cursor: pointer;
+}
+
+.node:hover {
+    stroke-width: 3;
+}
+
 .statusbar {
     background: var(--bg-secondary);
     border-top: 1px solid var(--border-color);

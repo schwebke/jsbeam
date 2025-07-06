@@ -49,18 +49,25 @@ Since this is a no-build project, development is straightforward:
 
 - **Menu System**: File and help menus with dropdown functionality
 - **Content Area**: Dynamic SVG grid that adapts to container size
-- **Status Bar**: Shows application status
+- **Status Bar**: Shows application status with real-time coordinate tracking
 - **Dark Mode**: Toggle between light and dark themes (? → Dark/Light Mode)
 - **Theme Persistence**: Remembers user preference and respects system settings
 - **Responsive Design**: Adapts to different screen sizes and aspect ratios
-
-## Planned Features (ADR-002)
-
 - **Interactive Node Entry**: Click-to-place nodes with JBeam-compatible data structure
 - **Application Modes**: Select and addNode modes with extensible architecture
 - **Coordinate Tracking**: Real-time x-z coordinate display in status bar
 - **Model Management**: JBeam JSON format for cross-platform compatibility
+- **URL-based Model State**: Model ID stored in URL for persistence and sharing
 - **Multi-Instance Support**: Independent models in different browser tabs/windows
+- **Keyboard Shortcuts**: Ctrl+1 (Select mode), Ctrl+2 (Add Node mode)
+
+## Planned Features
+
+- **Beam Entry**: Connect nodes with structural beam elements
+- **Load Application**: Add forces, moments, and distributed loads
+- **Support Definition**: Add boundary conditions and constraints
+- **Structural Analysis**: Calculate displacements and internal forces
+- **Results Visualization**: Display deformed shapes and force diagrams
 
 ## License
 
