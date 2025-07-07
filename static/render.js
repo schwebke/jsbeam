@@ -1,11 +1,12 @@
 import { html } from 'htm/preact';
 import { worldToScreen, calculateGridSpacing, screenToWorld } from './util.js';
+import { eps } from './math.js';
 
 // SVG marker definitions for arrows
 export const svgMarkers = html`
     <defs>
-        <marker id="arrowhead" markerWidth="3" markerHeight="2.5" refX="3" refY="1.25" orient="auto">
-            <polygon points="0 0, 3 1.25, 0 2.5" fill="none" stroke="var(--moment-color)" stroke-width="1" />
+        <marker id="arrowhead" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+            <polygon points="0 0, 6 2.5, 0 5" fill="none" stroke="var(--force-color)" stroke-width="1" />
         </marker>
     </defs>
 `;
@@ -88,6 +89,14 @@ export const renderNode = (node, screen, viewport) => {
             />
         `);
     }
+
+    // hatchlines for XZ constrained bases
+    const hatchlines = [];
+    for (let x = -0.5*constraintSymbolSize; x <= +0.5*constraintSymbolSize; x += constraintSymbolSize/6) {
+        hatchlines.push(html`
+                <line x1="${screen.x - x}" y1="${screen.z + nodeRadius + 18/12*constraintSymbolSize}" x2="${screen.x - x - 0.5*constraintSymbolSize}" y2="${screen.z + nodeRadius + 2*constraintSymbolSize}" stroke-width="1" />
+        `);
+    }
     
     // Constraint symbols (based on JBeam NodeRenderer reference)
     if (node.constraints.x && node.constraints.z && node.constraints.r) {
@@ -95,23 +104,11 @@ export const renderNode = (node, screen, viewport) => {
         elements.push(html`
             <g class="constraint-symbol">
                 <!-- Vertical post of the T -->
-                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 2}" x2="${screen.x}" y2="${screen.z + nodeRadius + 16}" stroke-width="2" />
+                <line x1="${screen.x}" y1="${screen.z + nodeRadius + constraintSymbolSize/6}" x2="${screen.x}" y2="${screen.z + nodeRadius + 16/12*constraintSymbolSize}" stroke-width="2" />
                 <!-- Horizontal base of the T -->
-                <line x1="${screen.x - 10}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 10}" y2="${screen.z + nodeRadius + 16}" stroke-width="2" />
-                <!-- Cross-hatched fill (diagonal lines) -->
-                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x - 6}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x - 4}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 4}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 6}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <!-- Cross-hatched fill (opposite diagonal lines) -->
-                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 8}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 6}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 4}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x + 4}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x + 6}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
-                <line x1="${screen.x + 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 24}" stroke-width="1" />
+                <line x1="${screen.x - 10/12*constraintSymbolSize}" y1="${screen.z + nodeRadius + 16/12*constraintSymbolSize}" x2="${screen.x + 10/12*constraintSymbolSize}" y2="${screen.z + nodeRadius + 16/12*constraintSymbolSize}" stroke-width="2" />
+                <!-- hatched fill -->
+                ${hatchlines}
             </g>
         `);
     } else if (node.constraints.x && node.constraints.z) {
@@ -120,17 +117,9 @@ export const renderNode = (node, screen, viewport) => {
             <g class="constraint-symbol">
                 <!-- Triangle outline (no fill) -->
                 <polygon fill="none" stroke-width="2"
-                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
-                <!-- Cross-hatched base (same as fully constrained) -->
-                <line x1="${screen.x - 6}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x - 4}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 2}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x - 2}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 4}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x + 6}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <!-- Cross-hatched base (opposite diagonal) -->
-                <line x1="${screen.x}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 6}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x + 2}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 4}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x + 4}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x - 2}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
-                <line x1="${screen.x + 6}" y1="${screen.z + nodeRadius + 16}" x2="${screen.x}" y2="${screen.z + nodeRadius + 22}" stroke-width="1" />
+                         points="${screen.x},${screen.z + nodeRadius + 2/12*constraintSymbolSize} ${screen.x - 8/12*constraintSymbolSize},${screen.z + nodeRadius + 14/12*constraintSymbolSize} ${screen.x + 8/12*constraintSymbolSize},${screen.z + nodeRadius + 14/12*constraintSymbolSize}" />
+                <!-- hatched fill -->
+                ${hatchlines}
             </g>
         `);
     } else if (node.constraints.x && !node.constraints.z) {
@@ -139,9 +128,9 @@ export const renderNode = (node, screen, viewport) => {
             <g class="constraint-symbol">
                 <!-- Triangle outline (no fill) -->
                 <polygon fill="none" stroke-width="2"
-                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
+                         points="${screen.x},${screen.z + nodeRadius + 2/12*constraintSymbolSize} ${screen.x - 8/12*constraintSymbolSize},${screen.z + nodeRadius + 14/12*constraintSymbolSize} ${screen.x + 8/12*constraintSymbolSize},${screen.z + nodeRadius + 14/12*constraintSymbolSize}" />
                 <!-- Slider line parallel to triangle base -->
-                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 18}" stroke-width="2" />
+                <line x1="${screen.x - 8/12*constraintSymbolSize}" y1="${screen.z + nodeRadius + 18/12*constraintSymbolSize}" x2="${screen.x + 8/12*constraintSymbolSize}" y2="${screen.z + nodeRadius + 18/12*constraintSymbolSize}" stroke-width="2" />
             </g>
         `);
     } else if (!node.constraints.x && node.constraints.z) {
@@ -150,42 +139,15 @@ export const renderNode = (node, screen, viewport) => {
             <g class="constraint-symbol">
                 <!-- Triangle pointing right (rotated 90° CCW) -->
                 <polygon fill="none" stroke-width="2"
-                         points="${screen.x + nodeRadius + 2},${screen.z} ${screen.x + nodeRadius + 14},${screen.z - 8} ${screen.x + nodeRadius + 14},${screen.z + 8}" />
+                         points="${screen.x + nodeRadius + 2/12*constraintSymbolSize},${screen.z} ${screen.x + nodeRadius + 14/12*constraintSymbolSize},${screen.z - 8/12*constraintSymbolSize} ${screen.x + nodeRadius + 14/12*constraintSymbolSize},${screen.z + 8/12*constraintSymbolSize}" />
                 <!-- Slider line parallel to triangle base (vertical) -->
-                <line x1="${screen.x + nodeRadius + 18}" y1="${screen.z - 8}" x2="${screen.x + nodeRadius + 18}" y2="${screen.z + 8}" stroke-width="2" />
+                <line x1="${screen.x + nodeRadius + 18/12*constraintSymbolSize}" y1="${screen.z - 8/12*constraintSymbolSize}" x2="${screen.x + nodeRadius + 18/12*constraintSymbolSize}" y2="${screen.z + 8/12*constraintSymbolSize}" stroke-width="2" />
             </g>
-        `);
-    } else if (!node.constraints.x && node.constraints.z && node.constraints.r) {
-        // ZR constrained (Z + rotation) - triangle rotated 90° CCW with slider line (same as Z only)
-        elements.push(html`
-            <g class="constraint-symbol">
-                <!-- Triangle pointing right (rotated 90° CCW) -->
-                <polygon fill="none" stroke-width="2"
-                         points="${screen.x + nodeRadius + 2},${screen.z} ${screen.x + nodeRadius + 14},${screen.z - 8} ${screen.x + nodeRadius + 14},${screen.z + 8}" />
-                <!-- Slider line parallel to triangle base (vertical) -->
-                <line x1="${screen.x + nodeRadius + 18}" y1="${screen.z - 8}" x2="${screen.x + nodeRadius + 18}" y2="${screen.z + 8}" stroke-width="2" />
-            </g>
-        `);
-    } else if (node.constraints.x && !node.constraints.z && node.constraints.r) {
-        // XR constrained (X + rotation) - triangle with slider line (same as X only)
-        elements.push(html`
-            <g class="constraint-symbol">
-                <!-- Triangle outline (no fill) -->
-                <polygon fill="none" stroke-width="2"
-                         points="${screen.x},${screen.z + nodeRadius + 2} ${screen.x - 8},${screen.z + nodeRadius + 14} ${screen.x + 8},${screen.z + nodeRadius + 14}" />
-                <!-- Slider line parallel to triangle base -->
-                <line x1="${screen.x - 8}" y1="${screen.z + nodeRadius + 18}" x2="${screen.x + 8}" y2="${screen.z + nodeRadius + 18}" stroke-width="2" />
-            </g>
-        `);
-    } else if (!node.constraints.x && !node.constraints.z && node.constraints.r) {
-        // R constrained only (rotation constraint) - small square at node center
-        elements.push(html`
-            <rect class="constraint-symbol" x="${screen.x - 3}" y="${screen.z - 3}" width="6" height="6" fill="none" stroke-width="2" />
         `);
     }
     
     // Force vectors
-    if (Math.abs(node.loads.fx) > 0.001 || Math.abs(node.loads.fz) > 0.001) {
+    if (Math.abs(node.loads.fx) > eps || Math.abs(node.loads.fz) > eps) {
         const forceScale = 40; // Scale factor for force display (200% of 20)
         const fx = node.loads.fx * forceScale;
         const fz = node.loads.fz * forceScale;
@@ -198,8 +160,8 @@ export const renderNode = (node, screen, viewport) => {
             
             elements.push(html`
                 <g class="force-vector">
-                    <line x1=${startX} y1=${startZ} x2=${screen.x} y2=${screen.z} stroke="var(--moment-color)" stroke-width="2" marker-end="url(#arrowhead)" />
-                    <text x=${screen.x + 8} y=${screen.z - 8} class="force-label" fill="var(--moment-color)">
+                    <line x1=${startX} y1=${startZ} x2=${screen.x} y2=${screen.z} stroke="var(--force-color)" stroke-width="2" marker-end="url(#arrowhead)" />
+                    <text x=${screen.x + 8} y=${screen.z - 8} class="force-label">
                         ${Math.round(Math.sqrt(node.loads.fx * node.loads.fx + node.loads.fz * node.loads.fz) * 100) / 100}
                     </text>
                 </g>
@@ -208,7 +170,7 @@ export const renderNode = (node, screen, viewport) => {
     }
     
     // Moment symbol
-    if (Math.abs(node.loads.m) > 0.001) {
+    if (Math.abs(node.loads.m) > eps) {
         const momentRadius = 12;
         const clockwise = node.loads.m < 0;
         
@@ -221,8 +183,8 @@ export const renderNode = (node, screen, viewport) => {
                     ${Math.abs(node.loads.m)}
                 </text>
                 <!-- Arrow at end of arc (CCW for positive moment) -->
-                <polygon points="${screen.x + momentRadius - 2},${clockwise ? screen.z + 2 : screen.z - 2} ${screen.x + momentRadius + 2},${screen.z} ${screen.x + momentRadius - 2},${clockwise ? screen.z - 2 : screen.z + 2}" 
-                         fill="none" stroke="var(--moment-color)" stroke-width="1" />
+                <polygon points="${screen.x + momentRadius - 0},${clockwise ? screen.z + 4 : screen.z - 4} ${screen.x + momentRadius + 4},${clockwise ? screen.z - 4 : screen.z + 4} ${screen.x + momentRadius - 4},${clockwise ? screen.z - 4 : screen.z + 4}" 
+                         fill="none" stroke="var(--force-color)" stroke-width="1" />
             </g>
         `);
     }

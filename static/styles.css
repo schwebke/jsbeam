@@ -12,8 +12,7 @@
     --shadow: rgba(0,0,0,0.1);
     --shadow-strong: rgba(0,0,0,0.2);
     --constraint-color: #ff6b35;
-    --force-color: #2196f3;
-    --moment-color: #4caf50;
+    --force-color:  #4caf50;
 }
 
 .dark-theme {
@@ -30,8 +29,7 @@
     --shadow: rgba(0,0,0,0.3);
     --shadow-strong: rgba(0,0,0,0.5);
     --constraint-color: #ff8a65;
-    --force-color: #64b5f6;
-    --moment-color: #81c784;
+    --force-color:  #82c784;
 }
 
 * {
@@ -324,7 +322,7 @@ body, html {
 }
 
 .moment-symbol {
-    stroke: var(--moment-color);
-    fill: var(--moment-color);
+    stroke: var(--force-color);
+    fill: var(--force-color);
     pointer-events: none;
 }
