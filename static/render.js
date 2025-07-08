@@ -244,18 +244,87 @@ export const renderBeam = (beam, startNode, endNode, viewport, dimensions) => {
     `;
 };
 
-// Render all beams
+// Render truss element (JBeam TrussBeam)
+export const renderTruss = (truss, startNode, endNode, viewport, dimensions) => {
+    const startScreen = worldToScreen(startNode.coordinates.x, startNode.coordinates.z, viewport, dimensions);
+    const endScreen = worldToScreen(endNode.coordinates.x, endNode.coordinates.z, viewport, dimensions);
+    
+    return html`
+        <g class="truss-group" data-truss-id=${truss.id}>
+            <line 
+                x1=${startScreen.x} 
+                y1=${startScreen.z} 
+                x2=${endScreen.x} 
+                y2=${endScreen.z}
+                stroke="var(--truss-color)"
+                stroke-width="3"
+                class="truss"
+            />
+            ${truss.label && html`
+                <text 
+                    x=${(startScreen.x + endScreen.x) / 2} 
+                    y=${(startScreen.z + endScreen.z) / 2 - 10}
+                    class="truss-label" 
+                    fill="var(--text-primary)"
+                    text-anchor="middle"
+                >
+                    ${truss.label}
+                </text>
+            `}
+        </g>
+    `;
+};
+
+// Render truss preview (rubber band) during truss entry
+export const renderTrussPreview = (startNode, mousePosition, viewport, dimensions) => {
+    if (!startNode || !mousePosition) return null;
+    
+    const startScreen = worldToScreen(startNode.coordinates.x, startNode.coordinates.z, viewport, dimensions);
+    const endScreen = mousePosition; // mousePosition is already in screen coordinates
+    
+    return html`
+        <g class="truss-preview-group">
+            <line 
+                x1=${startScreen.x} 
+                y1=${startScreen.z} 
+                x2=${endScreen.x} 
+                y2=${endScreen.z}
+                stroke="var(--truss-preview-color)"
+                stroke-width="2"
+                stroke-dasharray="5,5"
+                class="truss-preview"
+            />
+        </g>
+    `;
+};
+
+// Render all beams and trusses
 export const renderBeams = (beams, nodes, viewport, dimensions) => {
     return beams.map(beam => {
-        const startNode = nodes.find(node => node.id === beam.startNode);
-        const endNode = nodes.find(node => node.id === beam.endNode);
-        
-        if (!startNode || !endNode) {
-            console.warn(`Beam ${beam.id} references non-existent nodes`);
-            return null;
+        if (beam.type === 'truss') {
+            // Handle JBeam truss structure with nodeIds array
+            const [startNodeId, endNodeId] = beam.nodeIds;
+            const startNode = nodes.find(node => node.id === startNodeId);
+            const endNode = nodes.find(node => node.id === endNodeId);
+            
+            if (!startNode || !endNode) {
+                console.warn(`Truss ${beam.id} references non-existent nodes`);
+                return null;
+            }
+            
+            return renderTruss(beam, startNode, endNode, viewport, dimensions);
+        } else {
+            // Handle legacy beam structure with startNode/endNode properties
+            const startNode = nodes.find(node => node.id === beam.startNode);
+            const endNode = nodes.find(node => node.id === beam.endNode);
+            
+            if (!startNode || !endNode) {
+                console.warn(`Beam ${beam.id} references non-existent nodes`);
+                return null;
+            }
+            
+            return renderBeam(beam, startNode, endNode, viewport, dimensions);
         }
-        
-        return renderBeam(beam, startNode, endNode, viewport, dimensions);
     }).filter(Boolean);
 };
 

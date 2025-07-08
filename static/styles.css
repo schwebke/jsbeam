@@ -13,6 +13,8 @@
     --shadow-strong: rgba(0,0,0,0.2);
     --constraint-color: #ff6b35;
     --force-color:  #4caf50;
+    --truss-color: #2196f3;
+    --truss-preview-color: rgba(33, 150, 243, 0.5);
 }
 
 .dark-theme {
@@ -30,6 +32,8 @@
     --shadow-strong: rgba(0,0,0,0.5);
     --constraint-color: #ff8a65;
     --force-color:  #82c784;
+    --truss-color: #42a5f5;
+    --truss-preview-color: rgba(66, 165, 245, 0.5);
 }
 
 * {
@@ -111,6 +115,10 @@ body, html {
 }
 
 .content-area.mode-addNode {
+    cursor: crosshair;
+}
+
+.content-area.mode-addTruss {
     cursor: crosshair;
 }
 

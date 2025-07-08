@@ -123,7 +123,14 @@ export const applyTheme = (theme) => {
 // Application modes
 export const MODES = {
     SELECT: 'select',
-    ADD_NODE: 'addNode'
+    ADD_NODE: 'addNode',
+    ADD_TRUSS: 'addTruss'
+};
+
+// Truss selection states
+export const TRUSS_STATES = {
+    SELECTING_START_NODE: 'selectingStartNode',
+    SELECTING_END_NODE: 'selectingEndNode'
 };
 
 // Mathematical utilities

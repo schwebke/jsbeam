@@ -1,8 +1,8 @@
 import { html } from 'htm/preact';
 import { useState, useEffect } from 'preact/hooks';
-import { MODES, validateNodeProperties, worldToScreen } from './util.js';
-import { svgMarkers, renderGrid, renderNodes, renderBeams, renderNode } from './render.js';
-import { createViewportHandler, createModeHandler, createNodeContextHandler } from './interact.js';
+import { MODES, TRUSS_STATES, validateNodeProperties, worldToScreen } from './util.js';
+import { svgMarkers, renderGrid, renderNodes, renderBeams, renderNode, renderTrussPreview } from './render.js';
+import { createViewportHandler, createModeHandler, createNodeContextHandler, createTrussHandler } from './interact.js';
 
 // MenuBar component
 export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode, onModeChange, onFileNew, viewport, onZoomIn, onZoomOut, onZoomFit, onZoomActual }) {
@@ -126,6 +126,9 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
                         <div class="dropdown-item" onClick=${handleModeSelect(MODES.ADD_NODE)}>
                             ${applicationMode === MODES.ADD_NODE ? '✓ ' : ''}Add Node
                         </div>
+                        <div class="dropdown-item" onClick=${handleModeSelect(MODES.ADD_TRUSS)}>
+                            ${applicationMode === MODES.ADD_TRUSS ? '✓ ' : ''}Add Truss
+                        </div>
                     </div>
                 `}
             </div>
@@ -157,7 +160,12 @@ export function MenuBar({ onAbout, onToggleTheme, currentTheme, applicationMode,
 
 // StatusBar component
 export function StatusBar({ applicationMode, cursorCoordinates, model, viewport }) {
-    const modeDisplay = applicationMode === MODES.SELECT ? 'Select' : 'Add Node';
+    let modeDisplay = 'Select';
+    if (applicationMode === MODES.ADD_NODE) {
+        modeDisplay = 'Add Node';
+    } else if (applicationMode === MODES.ADD_TRUSS) {
+        modeDisplay = 'Add Truss';
+    }
     const zoomPercent = Math.round(viewport.zoom * 100);
     
     return html`
@@ -168,10 +176,15 @@ export function StatusBar({ applicationMode, cursorCoordinates, model, viewport 
 }
 
 // ContentArea component with SVG point grid
-export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, viewport, onViewportChange, onNodeContextMenu }) {
+export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, viewport, onViewportChange, onNodeContextMenu, onAddTruss }) {
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [isPanning, setIsPanning] = useState(false);
     const [panStart, setPanStart] = useState(null);
+    
+    // Truss mode state
+    const [trussState, setTrussState] = useState(TRUSS_STATES.SELECTING_START_NODE);
+    const [startNode, setStartNode] = useState(null);
+    const [mousePosition, setMousePosition] = useState(null);
     
     // Update dimensions when container size changes
     useEffect(() => {
@@ -189,6 +202,16 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
         window.addEventListener('resize', updateDimensions);
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
+
+    // Create truss handler
+    const trussHandler = createTrussHandler(applicationMode, model, onAddTruss, viewport, dimensions);
+    
+    // Reset truss state when switching modes
+    useEffect(() => {
+        if (applicationMode !== MODES.ADD_TRUSS) {
+            trussHandler.cancelTrussOperation(setTrussState, setStartNode, setMousePosition);
+        }
+    }, [applicationMode]);
 
     // Handle mouse events
     const handleMouseDown = (event) => {
@@ -227,6 +250,9 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
             z: (screenZ - dimensions.height / 2) / viewport.zoom + viewport.pan.z
         };
         onCursorMove(worldCoords);
+        
+        // Handle truss preview
+        trussHandler.handleTrussMouseMove(event, trussState, setMousePosition);
     };
 
     const handleMouseUp = (event) => {
@@ -237,15 +263,19 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
     };
 
     const handleClick = (event) => {
-        if (applicationMode === MODES.ADD_NODE && !isPanning) {
-            const rect = event.currentTarget.getBoundingClientRect();
-            const screenX = event.clientX - rect.left;
-            const screenZ = event.clientY - rect.top;
-            const worldCoords = {
-                x: (screenX - dimensions.width / 2) / viewport.zoom + viewport.pan.x,
-                z: (screenZ - dimensions.height / 2) / viewport.zoom + viewport.pan.z
-            };
-            onAddNode(worldCoords);
+        if (!isPanning) {
+            if (applicationMode === MODES.ADD_NODE) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                const screenX = event.clientX - rect.left;
+                const screenZ = event.clientY - rect.top;
+                const worldCoords = {
+                    x: (screenX - dimensions.width / 2) / viewport.zoom + viewport.pan.x,
+                    z: (screenZ - dimensions.height / 2) / viewport.zoom + viewport.pan.z
+                };
+                onAddNode(worldCoords);
+            } else if (applicationMode === MODES.ADD_TRUSS) {
+                trussHandler.handleTrussInteraction(event, trussState, setTrussState, startNode, setStartNode, mousePosition, setMousePosition);
+            }
         }
     };
 
@@ -298,8 +328,16 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
         }
     };
 
+    const getCSSClass = () => {
+        let cssClass = 'content-area';
+        if (applicationMode === MODES.ADD_NODE) cssClass += ' mode-addNode';
+        if (applicationMode === MODES.ADD_TRUSS) cssClass += ' mode-addTruss';
+        if (isPanning) cssClass += ' panning';
+        return cssClass;
+    };
+
     return html`
-        <div class="content-area ${applicationMode === MODES.ADD_NODE ? 'mode-addNode' : ''} ${isPanning ? 'panning' : ''}" 
+        <div class=${getCSSClass()} 
              onMouseDown=${handleMouseDown} 
              onMouseMove=${handleMouseMove} 
              onMouseUp=${handleMouseUp}
@@ -309,7 +347,7 @@ export function ContentArea({ applicationMode, model, onAddNode, onCursorMove, v
                 ${svgMarkers}
                 ${renderGrid(viewport, dimensions)}
                 ${renderBeams(model.beams, model.nodes, viewport, dimensions)}
-${model.nodes.map(node => {
+                ${model.nodes.map(node => {
                     const screen = worldToScreen(node.coordinates.x, node.coordinates.z, viewport, dimensions);
                     return html`
                         <g class="node-group" onContextMenu=${(e) => handleNodeContextMenu(e, node)}>
@@ -317,6 +355,9 @@ ${model.nodes.map(node => {
                         </g>
                     `;
                 })}
+                ${applicationMode === MODES.ADD_TRUSS && startNode && mousePosition && 
+                    renderTrussPreview(startNode, mousePosition, viewport, dimensions)
+                }
             </svg>
         </div>
     `;

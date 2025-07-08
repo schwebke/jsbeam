@@ -1,7 +1,7 @@
 import { html } from 'htm/preact';
 import { useState, useEffect } from 'preact/hooks';
 import { MenuBar, ContentArea, StatusBar, AboutDialog, NodePropertiesEditor } from './ui-components.js';
-import { createModel, addNodeToModel, updateNodeInModel } from './model.js';
+import { createModel, addNodeToModel, updateNodeInModel, addTrussToModel } from './model.js';
 import { 
     getModelIdFromUrl, 
     setModelIdInUrl, 
@@ -127,6 +127,17 @@ export function App() {
         }));
     };
 
+    // Add truss to model
+    const addTruss = (startNodeId, endNodeId) => {
+        try {
+            const updatedModel = addTrussToModel(model, startNodeId, endNodeId);
+            setModel(updatedModel);
+        } catch (error) {
+            console.error('Failed to add truss:', error);
+            // Could show error dialog here
+        }
+    };
+
     // Create new model
     const createNewModel = () => {
         const newModelId = `${Date.now()}`;
@@ -192,6 +203,7 @@ export function App() {
                 applicationMode=${applicationMode}
                 model=${model}
                 onAddNode=${addNode}
+                onAddTruss=${addTruss}
                 onCursorMove=${setCursorCoordinates}
                 viewport=${viewport}
                 onViewportChange=${setViewport}

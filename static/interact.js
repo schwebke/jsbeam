@@ -1,4 +1,5 @@
-import { screenToWorld, worldToScreen, MODES, clamp } from './util.js';
+import { screenToWorld, worldToScreen, MODES, TRUSS_STATES, clamp } from './util.js';
+import { addTrussToModel } from './model.js';
 
 // Viewport interaction handling
 export const createViewportHandler = (viewport, setViewport, dimensions) => {
@@ -191,6 +192,10 @@ export const createKeyboardHandler = (setApplicationMode) => {
                 case '2':
                     event.preventDefault();
                     setApplicationMode(MODES.ADD_NODE);
+                    break;
+                case '3':
+                    event.preventDefault();
+                    setApplicationMode(MODES.ADD_TRUSS);
                     break;
                 default:
                     break;
@@ -433,4 +438,66 @@ const distanceToLineSegment = (point, lineStart, lineEnd) => {
     const dz = point.z - zz;
     
     return Math.sqrt(dx * dx + dz * dz);
+};
+
+// Truss interaction handler for two-phase selection
+export const createTrussHandler = (applicationMode, model, onAddTruss, viewport, dimensions) => {
+    const handleTrussInteraction = (event, trussState, setTrussState, startNode, setStartNode, mousePosition, setMousePosition) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const screenX = event.clientX - rect.left;
+        const screenZ = event.clientY - rect.top;
+        const worldCoords = screenToWorld(screenX, screenZ, viewport, dimensions);
+        
+        if (applicationMode === MODES.ADD_TRUSS) {
+            if (trussState === TRUSS_STATES.SELECTING_START_NODE) {
+                // Phase 1: Select start node
+                const clickedNode = hitTestNode({ x: screenX, z: screenZ }, model.nodes, viewport, dimensions);
+                if (clickedNode) {
+                    setStartNode(clickedNode);
+                    setTrussState(TRUSS_STATES.SELECTING_END_NODE);
+                    setMousePosition({ x: screenX, z: screenZ });
+                }
+            } else if (trussState === TRUSS_STATES.SELECTING_END_NODE) {
+                // Phase 2: Select end node
+                const clickedNode = hitTestNode({ x: screenX, z: screenZ }, model.nodes, viewport, dimensions);
+                if (clickedNode && clickedNode.id !== startNode.id) {
+                    // Complete truss creation
+                    try {
+                        onAddTruss(startNode.id, clickedNode.id);
+                        // Reset to start node selection for next truss
+                        setTrussState(TRUSS_STATES.SELECTING_START_NODE);
+                        setStartNode(null);
+                        setMousePosition(null);
+                    } catch (error) {
+                        console.error('Failed to add truss:', error);
+                        // Reset on error
+                        setTrussState(TRUSS_STATES.SELECTING_START_NODE);
+                        setStartNode(null);
+                        setMousePosition(null);
+                    }
+                }
+            }
+        }
+    };
+    
+    const handleTrussMouseMove = (event, trussState, setMousePosition) => {
+        if (applicationMode === MODES.ADD_TRUSS && trussState === TRUSS_STATES.SELECTING_END_NODE) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const screenX = event.clientX - rect.left;
+            const screenZ = event.clientY - rect.top;
+            setMousePosition({ x: screenX, z: screenZ });
+        }
+    };
+    
+    const cancelTrussOperation = (setTrussState, setStartNode, setMousePosition) => {
+        setTrussState(TRUSS_STATES.SELECTING_START_NODE);
+        setStartNode(null);
+        setMousePosition(null);
+    };
+    
+    return {
+        handleTrussInteraction,
+        handleTrussMouseMove,
+        cancelTrussOperation
+    };
 };

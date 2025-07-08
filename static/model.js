@@ -33,7 +33,19 @@ export const createNode = (coordinates, id) => ({
     }
 });
 
-// Beam data structure (future)
+// Truss data structure (JBeam TrussBeam compliant)
+export const createTruss = (startNodeId, endNodeId, id) => ({
+    id: id || `truss-${Date.now()}`,
+    type: "truss",
+    label: "",
+    nodeIds: [startNodeId, endNodeId],
+    material: {
+        EA: 210000  // Default axial stiffness (steel: 210 GPa * 1000 mm²)
+    },
+    mass: 0.0
+});
+
+// Legacy beam function (future - for frame elements)
 export const createBeam = (startNodeId, endNodeId, id) => ({
     id: id || `beam-${Date.now()}`,
     label: "",
@@ -86,11 +98,19 @@ export const validateModel = (model) => {
         }
     });
     
-    // Validate each beam (future)
+    // Validate each beam/truss
     model.beams.forEach((beam, index) => {
-        const beamErrors = validateBeam(beam, model.nodes);
-        if (beamErrors.length > 0) {
-            errors.push(`Beam ${index}: ${beamErrors.join(', ')}`);
+        let beamErrors = [];
+        if (beam.type === 'truss') {
+            beamErrors = validateTruss(beam, model.nodes);
+            if (beamErrors.length > 0) {
+                errors.push(`Truss ${index}: ${beamErrors.join(', ')}`);
+            }
+        } else {
+            beamErrors = validateBeam(beam, model.nodes);
+            if (beamErrors.length > 0) {
+                errors.push(`Beam ${index}: ${beamErrors.join(', ')}`);
+            }
         }
     });
     
@@ -157,6 +177,53 @@ export const validateBeam = (beam, nodes) => {
     return errors;
 };
 
+// Truss validation (JBeam TrussBeam compliant)
+export const validateTruss = (truss, nodes) => {
+    const errors = [];
+    
+    if (!truss.id) {
+        errors.push('Truss must have an ID');
+    }
+    
+    if (truss.type !== 'truss') {
+        errors.push('Truss type must be "truss"');
+    }
+    
+    if (!truss.nodeIds || !Array.isArray(truss.nodeIds) || truss.nodeIds.length !== 2) {
+        errors.push('Truss must have exactly 2 node IDs in nodeIds array');
+    } else {
+        const [startNodeId, endNodeId] = truss.nodeIds;
+        
+        if (startNodeId === endNodeId) {
+            errors.push('Truss start and end nodes cannot be the same');
+        }
+        
+        // Check if referenced nodes exist
+        const startNodeExists = nodes.some(node => node.id === startNodeId);
+        const endNodeExists = nodes.some(node => node.id === endNodeId);
+        
+        if (!startNodeExists) {
+            errors.push('Truss start node does not exist');
+        }
+        
+        if (!endNodeExists) {
+            errors.push('Truss end node does not exist');
+        }
+    }
+    
+    // Validate material properties
+    if (!truss.material || typeof truss.material.EA !== 'number' || truss.material.EA <= 0) {
+        errors.push('Truss must have valid material.EA (axial stiffness) > 0');
+    }
+    
+    // Validate mass
+    if (typeof truss.mass !== 'number' || truss.mass < 0) {
+        errors.push('Truss mass must be a non-negative number');
+    }
+    
+    return errors;
+};
+
 // Model manipulation functions
 export const addNodeToModel = (model, coordinates) => {
     const newNode = createNode(coordinates);
@@ -206,6 +273,35 @@ export const addBeamToModel = (model, startNodeId, endNodeId) => {
     return {
         ...model,
         beams: [...model.beams, newBeam]
+    };
+};
+
+export const addTrussToModel = (model, startNodeId, endNodeId) => {
+    const newTruss = createTruss(startNodeId, endNodeId);
+    
+    // Validate truss before adding
+    const trussErrors = validateTruss(newTruss, model.nodes);
+    if (trussErrors.length > 0) {
+        throw new Error(`Invalid truss: ${trussErrors.join(', ')}`);
+    }
+    
+    // Check for duplicate truss between same nodes
+    const existingTruss = model.beams.find(beam => {
+        if (beam.type === 'truss' && beam.nodeIds) {
+            const [start, end] = beam.nodeIds;
+            return (start === startNodeId && end === endNodeId) ||
+                   (start === endNodeId && end === startNodeId);
+        }
+        return false;
+    });
+    
+    if (existingTruss) {
+        throw new Error('Truss already exists between these nodes');
+    }
+    
+    return {
+        ...model,
+        beams: [...model.beams, newTruss]
     };
 };
 
